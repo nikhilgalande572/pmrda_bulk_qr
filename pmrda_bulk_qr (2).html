@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMRDA – Hoarding Permission</title>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700;800&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+:root{--navy:#003399;--navy-dk:#002277;--red:#cc0000;--gold:#f0a500;--bg:#f0f4f8;--white:#fff;--border:#d0d8e4;--text:#1a1a2e;--muted:#5a6278;--green:#1b6b1b;--shadow:0 4px 24px rgba(0,51,153,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Mukta',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding:0 24px;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.topbar svg{width:36px;height:36px;flex-shrink:0}
+.topbar-title{font-size:14px;font-weight:700;line-height:1.2}
+.topbar-title span{display:block;font-size:11px;font-weight:400;opacity:.75}
+.redstrip{background:var(--red);height:5px}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1200px;margin:0 auto;padding:28px 18px 80px}
+.page-head{margin-bottom:20px}
+.page-head h1{font-family:'Libre Baskerville',serif;font-size:21px;color:var(--navy);margin-bottom:3px}
+.page-head p{font-size:13px;color:var(--muted)}
+
+/* ── URL CONFIG ── */
+.url-box{background:#fffbea;border:2px solid var(--gold);border-radius:10px;padding:16px 20px;margin-bottom:22px}
+.url-box-title{font-size:13px;font-weight:800;color:#7a4f00;margin-bottom:6px}
+.url-box-desc{font-size:12px;color:#7a4f00;margin-bottom:10px;line-height:1.6}
+.url-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.url-input{flex:1;min-width:260px;padding:10px 14px;border:1.5px solid #e0c060;border-radius:7px;font-family:'Mukta',sans-serif;font-size:14px;outline:none;background:#fff}
+.url-input:focus{border-color:var(--navy)}
+.url-pill{font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap}
+.url-pill.ok{background:#e8f5e9;color:var(--green)}
+.url-pill.warn{background:#fff3e0;color:#b85c00}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-family:'Mukta',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#aa0000}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#155015}
+.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}.btn-outline:hover{background:#f0f4ff}
+.btn-gray{background:#f0f4f8;color:var(--muted);border:1.5px solid var(--border)}.btn-gray:hover{background:#e4eaf2}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── STATS ── */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 18px;text-align:center;box-shadow:var(--shadow)}
+.stat .num{font-size:24px;font-weight:800;color:var(--navy);line-height:1}
+.stat .lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.stat.g .num{color:var(--green)}
+
+/* ── TOOLBAR ── */
+.toolbar{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;box-shadow:var(--shadow)}
+.search-box{padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Mukta',sans-serif;font-size:14px;width:230px;outline:none}
+.search-box:focus{border-color:var(--navy)}
+
+/* ── TABLE ── */
+.tbl-wrap{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:820px}
+thead tr{background:var(--navy);color:#fff}
+thead th{padding:11px 12px;font-size:12px;font-weight:700;text-align:left;letter-spacing:.3px;white-space:nowrap}
+thead th:first-child{width:38px;text-align:center}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:#f5f8ff}
+tbody tr.sel{background:#edf2ff}
+tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
+tbody td:first-child{text-align:center}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700}
+.b-blue{background:#e8edf5;color:var(--navy)}
+.b-green{background:#e8f5e9;color:var(--green);font-size:10px}
+.aname{font-weight:700;max-width:190px}
+.ono{font-weight:800;color:var(--navy);font-size:14px}
+.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--navy)}
+
+/* ── PROGRESS ── */
+.prog-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;display:none}
+.prog-wrap{background:#e8edf5;border-radius:6px;height:7px;margin-bottom:10px;overflow:hidden;display:none}
+.prog-bar{height:100%;background:var(--navy);border-radius:6px;transition:width .25s;width:0%}
+
+/* ── QR GRID ── */
+.qr-section{margin-top:28px;display:none}
+.qr-section.show{display:block;animation:up .35s ease}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.qr-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.qr-sec-head h2{font-size:17px;font-weight:800;color:var(--navy)}
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px}
+.qr-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:7px;box-shadow:0 2px 8px rgba(0,51,153,.07)}
+.qr-card canvas,.qr-card img{border:2px solid var(--border);border-radius:5px;padding:5px}
+.qn{font-size:11px;font-weight:700;color:var(--navy);line-height:1.3;word-break:break-word}
+.qo{font-size:11px;color:var(--muted);font-weight:600}
+.qv{font-size:10px;color:var(--muted)}
+.dl1{padding:5px 12px;font-size:12px;background:var(--navy);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'Mukta',sans-serif;font-weight:700}
+.dl1:hover{background:var(--navy-dk)}
+
+/* ══════════════════════════════════════
+   VIEW PAGE — shown when QR is scanned
+══════════════════════════════════════ */
+#vp{display:none;min-height:100vh;background:#f0f0f0}
+.vstrip{background:var(--navy);color:#fff;text-align:center;padding:9px;font-size:11px;letter-spacing:1px;font-weight:700}
+.vc{max-width:580px;margin:0 auto;padding:22px 12px 60px}
+.vcard{background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.12);overflow:hidden;border:1px solid #ddd}
+.vhead{padding:20px 20px 14px;border-bottom:2px solid #e0e0e0}
+.vlogo-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.vlogo-row svg{width:54px;height:54px;flex-shrink:0}
+.vorg{font-family:'Libre Baskerville',serif;font-size:16px;font-weight:700;color:#111;line-height:1.3}
+.vsub{font-size:11px;color:var(--red);font-weight:700;letter-spacing:.8px;display:block;margin-top:3px}
+.vbadge{display:inline-block;background:#e8f5e9;color:var(--green);border:1px solid #a5d6a7;border-radius:4px;padding:3px 12px;font-size:12px;font-weight:700;margin-top:6px}
+.vmeta{width:100%;border-collapse:collapse}
+.vmeta tr:nth-child(even) td{background:#f9f9f9}
+.vmeta td{padding:12px 16px;border-bottom:1px solid #eee;font-size:14px;vertical-align:top;line-height:1.5}
+.vmeta td:first-child{font-weight:700;color:#222;width:44%;background:#f5f5f5}
+.vmeta tr:last-child td{border-bottom:none}
+.vfoot{background:var(--navy);color:#fff;text-align:center;padding:12px;font-size:11px;letter-spacing:.4px}
+.verr{text-align:center;padding:50px 20px;color:var(--muted)}
+.verr h2{color:var(--red);margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     VIEW PAGE (shown on QR scan)
+═══════════════════════════════ -->
+<div id="vp">
+  <div class="vstrip">PUNE METROPOLITAN REGION DEVELOPMENT AUTHORITY — OFFICIAL VERIFICATION PORTAL</div>
+  <div class="vc"><div class="vcard" id="vcard"></div></div>
+</div>
+
+<!-- ═══════════════════════════════
+     ADMIN APP
+═══════════════════════════════ -->
+<div id="app">
+  <div class="topbar">
+    <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="40,4 76,40 40,76 4,40" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"/>
+      <polygon points="40,14 66,40 40,66 14,40" fill="white"/>
+      <polygon points="40,22 58,40 40,58 22,40" fill="#003399"/>
+      <polygon points="40,30 50,40 40,50 30,40" fill="#cc0000"/>
+      <polygon points="40,26 46,38 34,38" fill="white"/>
+    </svg>
+    <div class="topbar-title">PMRDA – Bulk Hoarding QR Generator
+      <span>Pune Metropolitan Region Development Authority | आकाशचिन्ह विभाग</span>
+    </div>
+  </div>
+  <div class="redstrip"></div>
+
+  <div class="wrap">
+    <div class="page-head">
+      <h1>आकाशचिन्ह परवाना – Bulk QR Code Generator</h1>
+      <p>All 29 records loaded from register. Select and generate scannable QR codes.</p>
+    </div>
+
+    <!-- URL SETUP -->
+    <div class="url-box">
+      <div class="url-box-title">⚠️ Step 1 — Paste your GitHub Pages URL here before generating QRs</div>
+      <div class="url-box-desc">
+        This must be the URL where <strong>this file is hosted</strong> on GitHub Pages.<br>
+        Example: <code>https://nikhilgalande572.github.io/pmrda_QR/pmrda_bulk_qr.html</code>
+      </div>
+      <div class="url-row">
+        <input class="url-input" id="baseUrl" type="text"
+          placeholder="https://nikhilgalande572.github.io/pmrda_QR/pmrda_bulk_qr.html"
+          oninput="checkUrl()">
+        <div class="url-pill warn" id="urlPill">⚠ Not set</div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat"><div class="num">29</div><div class="lbl">Total Records</div></div>
+      <div class="stat"><div class="num" id="sSel">0</div><div class="lbl">Selected</div></div>
+      <div class="stat g"><div class="num" id="sGen">0</div><div class="lbl">QRs Ready</div></div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <input class="search-box" id="searchBox" type="text" placeholder="🔍 Search name, village, outward no…" oninput="filterTable()">
+      <button class="btn btn-outline" onclick="selectAll()">☑ Select All</button>
+      <button class="btn btn-gray"    onclick="deselectAll()">☐ Deselect All</button>
+      <button class="btn btn-red"  id="btnGen" onclick="generateSelected()" disabled>⚡ Generate QR for Selected</button>
+      <button class="btn btn-green" id="btnZip" onclick="downloadZip()"     disabled>⬇ Download ZIP</button>
+    </div>
+
+    <div class="prog-label" id="pLabel"></div>
+    <div class="prog-wrap"  id="pWrap"><div class="prog-bar" id="pBar"></div></div>
+
+    <!-- TABLE -->
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th><input type="checkbox" class="chk" id="chkAll" onchange="toggleAll(this)"></th>
+          <th>अ.क्र.</th><th>जावक क्र.</th><th>आवक क्र.</th><th>दिनांक</th>
+          <th>अर्जदाराचे नाव</th><th>विषय</th><th>गाव</th><th>तालुका</th><th>संपर्क</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- QR OUTPUT -->
+    <div class="qr-section" id="qrSec">
+      <div class="qr-sec-head">
+        <h2>✅ QR Codes — <span id="qrCnt">0</span> permits</h2>
+        <button class="btn btn-green" onclick="downloadZip()">⬇ Download All as ZIP</button>
+      </div>
+      <div class="qr-grid" id="qrGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// ALL 29 RECORDS
+// ══════════════════════════════════════════════
+const REC=[
+  {sr:1, o:"10024",i:"354",  d:"05-02-2025",a:"प्रेम पब्लिसिटी",                                                  s:"आकाशचिन्ह मान्यता प्रमाणपत्र",        v:"पेरणे",        t:"हवेली", c:"9822213667",ref:"जा.क्र.:पीएमआरडीए/आकाशचिन्ह/मौ.पेरणे/ग.नं.993पै./क्र.354/10024"},
+  {sr:2, o:"932",  i:"1008", d:"06-05-2025",a:"मे. शुभइंडिया ॲड व्हेंचर्स – श्री. शुभम किशोर जैन",            s:"आकाशचिन्ह परवाना",                    v:"उरसे",         t:"मावळ",  c:"9011126970",ref:"जा.क्र.SKY/मौ.उरसे/ग.नं.92पै./क्र.1008/24-25/932"},
+  {sr:3, o:"2961", i:"1130", d:"08-07-2025",a:"महाराष्ट्र ॲकॅडमी ऑफ इंजिनिअरींग",                              s:"आकाशचिन्ह नियमितीकरण परवाना",         v:"कदमवाकवस्ती", t:"हवेली", c:"9011515921",ref:"जा.क्र.आ.चि.वि./मौ.कदमवाकवस्ती/ग.नं.499पै./क्र.1130/24-25/2961"},
+  {sr:4, o:"4307", i:"867",  d:"17-09-2025",a:"श्री. राजू मांगीलाल छाजेड",                                     s:"आकाशचिन्ह नियमितीकरण परवाना",         v:"कदमवाकवस्ती", t:"हवेली", c:"9822332167",ref:"जा.क्र.आ.चि.वि./मौ.कदमवाकवस्ती/ग.नं.877पै./क्र.867/24-25/4307"},
+  {sr:5, o:"4322", i:"—",    d:"18-09-2025",a:"मावर्स ॲडव्हर्टायझिंग – श्री. राहुल दिनकर कदम",               s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9730737372",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.218/2/2अ/3/क्र.1061/24-25/4323"},
+  {sr:6, o:"4323", i:"1059", d:"18-09-2025",a:"मावर्स ॲडव्हर्टायझिंग – श्री. राहुल दिनकर कदम",               s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9730737372",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.256/7/1पै./क्र.1059/24-25/4323"},
+  {sr:7, o:"4324", i:"1109", d:"18-09-2025",a:"मावर्स ॲडव्हर्टायझिंग – श्री. राहुल दिनकर कदम",               s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9730737372",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.219पै./क्र.1109/25-26/4324"},
+  {sr:8, o:"4325", i:"1107", d:"18-09-2025",a:"मावर्स ॲडव्हर्टायझिंग अँड मार्केटिंग",                        s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9730737372",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.256/7/1पै./क्र.1107/24-25/4325"},
+  {sr:9, o:"4326", i:"1108", d:"18-09-2025",a:"मावर्स ॲडव्हर्टायझिंग अँड मार्केटिंग",                        s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9730737372",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.256/7/1पै./क्र.1108/24-25/4326"},
+  {sr:10,o:"4520A",i:"—",    d:"30-09-2025",a:"एम.आय.टी. आर्ट डिझाईन अँड टेक्नॉलॉजी विद्यापीठ पुणे",      s:"आकाशचिन्ह परवाना",                    v:"कदमवाकवस्ती", t:"हवेली", c:"9604353535",ref:"जा.क्र.आ.च.वि./मौ.कदमवाकवस्ती/ग.नं.1173/क्र.1153/24-25"},
+  {sr:11,o:"4624", i:"876",  d:"06-10-2025",a:"श्री. दिगंबर बापुराव गवळी (वनश्री ॲडव्हर्टायझिंग)",         s:"आकाशचिन्ह परवाना",                    v:"शिंदेवाडी",    t:"भोर",   c:"9922422111",ref:"जा.क्र.आ.चि.वि./मौ.शिंदेवाडी/भोर/ग.नं.220/क्र.876/25/4624"},
+  {sr:12,o:"4670", i:"37",   d:"07-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग",                                  s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.220/क्र.37/23-24/4670"},
+  {sr:13,o:"4671", i:"32",   d:"07-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग",                                  s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.220/क्र.32/23-24/4671"},
+  {sr:14,o:"4672", i:"18",   d:"07-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग",                                  s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.9/1/2पैकी/क्र.18/23-24/4672"},
+  {sr:15,o:"4673", i:"788",  d:"07-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग",                                  s:"आकाशचिन्ह परवाना",                    v:"हजवडी",        t:"मुळशी", c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.152/क्र.788/23-24/4673"},
+  {sr:16,o:"4709", i:"9",    d:"09-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग – श्री. सदाशिव रामदास सूर्यवंशी",s:"आकाशचिन्ह परवाना",                    v:"कुळी",         t:"खेड",   c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.कुळी/ता.खेड/ग.नं.171/1/1/क्र.9/23-24/4709"},
+  {sr:17,o:"4710", i:"40",   d:"09-10-2025",a:"मे. शुभांगी ॲडव्हर्टायझिंग – श्री. सदाशिव रामदास सूर्यवंशी",s:"आकाशचिन्ह परवाना",                    v:"कुळी",         t:"खेड",   c:"9552568201",ref:"जा.क्र.आ.चि.वि./मौ.कुळी/ता.खेड/ग.नं.679/62/1/क्र.40/23-24/4710"},
+  {sr:18,o:"4986", i:"1169", d:"17-10-2025",a:"श्री. रमेश आनंद सातव (मे. ॲम ॲडव्हर्टायझिंग)",              s:"आकाशचिन्ह परवाना",                    v:"होलेवाडी",     t:"खेड",   c:"9890801841",ref:"जा.क्र.आ.चि.वि./मौ.होलेवाडी/ता.खेड/ग.नं.92/2/क्र.1169/25-26/4986"},
+  {sr:19,o:"5272", i:"570",  d:"11-11-2025",a:"सौ. अवनी दिगंबर गवळी",                                        s:"आकाशचिन्ह परवाना",                    v:"किकवी",        t:"भोर",   c:"9922422111",ref:"जा.क्र.आ.चि.वि./मौ.किकवी/ता.भोर/ग.नं.271/क्र.570/5272"},
+  {sr:20,o:"5545", i:"370",  d:"26-11-2025",a:"श्री. तानाजी रामू मगलुरकर",                                   s:"नियमितीकरणासह आकाशचिन्ह परवाना",     v:"तळेगाव दाभाडे",t:"मावळ",  c:"9881424995",ref:"जा.क्र.आ.चि.वि./मौ.तळेगाव/ग.नं.292पै./क्र.370/5545"},
+  {sr:21,o:"5546", i:"158",  d:"26-11-2025",a:"श्री. तानाजी रामू मगलुरकर",                                   s:"नियमितीकरणासह आकाशचिन्ह परवाना",     v:"सोमाटणे",      t:"मावळ",  c:"9881424995",ref:"जा.क्र.आ.चि.वि./मौ.सोमाटणे/ग.नं.627/1/क्र.158/5546"},
+  {sr:22,o:"5632", i:"177",  d:"04-12-2025",a:"श्री. तानाजी रामू मगुलरकर (यश आउटडोअर ॲडव्हर्टायझिंग)",    s:"आकाशचिन्ह परवाना",                    v:"सोमाटणे",      t:"मावळ",  c:"9881424995",ref:"जा.क्र.आ.चि.वि./मौ.सोमाटणे/ग.नं.177/क्र.2895/5632"},
+  {sr:23,o:"5652", i:"1331", d:"08-12-2025",a:"श्रीनाथ शिक्षण प्रसारक मंडळ – डॉ. दिनेश डोके",             s:"आकाशचिन्ह परवाना",                    v:"कढापुरी",      t:"शिरूर", c:"9765809424",ref:"जा.क्र.आ.चि.वि./मौ.कढापुरी/ता.शिरूर/ग.नं.640/क्र.1331/25-26/5652"},
+  {sr:24,o:"6378", i:"1131", d:"09-02-2026",a:"प्राईड पर्पल प्रॉपर्टीज – श्री. नवीन सुरेश अगरवाल",       s:"आकाशचिन्ह नियमितीकरण परवाना",        v:"हजवडी",        t:"मुळशी", c:"9890934949",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.256/1/2पै./क्र.1131/25-26/6378"},
+  {sr:25,o:"6379", i:"1132", d:"09-02-2026",a:"प्राईड पर्पल प्रॉपर्टीज – श्री. नवीन सुरेश अगरवाल",       s:"आकाशचिन्ह नियमितीकरण परवाना",        v:"मांजरी",       t:"मुळशी", c:"9890934949",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.256/1/2पै./क्र.1132/25-26/6379"},
+  {sr:26,o:"142",  i:"1193", d:"23-02-2026",a:"ऑरेंज मिडिया – श्री. संदीप ज्ञानोबा वाकडकर",               s:"आकाशचिन्ह परवाना (ग.नं.37/2)",       v:"मांजरी",       t:"मुळशी", c:"8888554444",ref:"जा.क्र.आ.चि.वि./मौ.मांजरी/ग.नं.37/2पै./क्र.1193/25-26/142"},
+  {sr:27,o:"143",  i:"1194", d:"23-02-2026",a:"ऑरेंज मिडिया – श्री. संदीप ज्ञानोबा वाकडकर",               s:"आकाशचिन्ह परवाना (ग.नं.37/2)",       v:"मांजरी",       t:"मुळशी", c:"8888554444",ref:"जा.क्र.आ.चि.वि./मौ.मांजरी/ग.नं.37/2पै./क्र.1194/25-26/143"},
+  {sr:28,o:"144",  i:"1195", d:"23-02-2026",a:"ऑरेंज मिडिया – श्री. संदीप ज्ञानोबा वाकडकर",               s:"आकाशचिन्ह परवाना (ग.नं.37/2)",       v:"मांजरी",       t:"मुळशी", c:"8888554444",ref:"जा.क्र.आ.चि.वि./मौ.मांजरी/ग.नं.37/2पै./क्र.1195/25-26/144"},
+  {sr:29,o:"145",  i:"1060", d:"23-02-2026",a:"ऑरेंज मिडिया – श्री. संदीप ज्ञानोबा वाकडकर",               s:"आकाशचिन्ह परवाना (ग.नं.259/25 पैकी)",v:"हजवडी",        t:"मुळशी", c:"8888554444",ref:"जा.क्र.आ.चि.वि./मौ.हजवडी/ग.नं.259/25पै./क्र.1060/25-26/145"},
+];
+
+// Build lookup map
+const MAP={};
+REC.forEach(r=>{MAP[r.o]=r});
+
+// ══════════════════════════════════════
+// ROUTING — uses ?r=OUTWARD (query param)
+// This is 100% reliable on all mobile browsers
+// ══════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const viewId    = urlParams.get('r');   // e.g. ?r=4307  →  "4307"
+
+if(viewId){
+  // ── SCAN MODE: hide app, show metadata ──
+  document.getElementById('app').style.display='none';
+  document.getElementById('vp').style.display='block';
+  showMeta(viewId);
+} else {
+  // ── ADMIN MODE: show app ──
+  document.getElementById('app').style.display='block';
+  document.getElementById('vp').style.display='none';
+  renderTable();
+}
+
+// ══════════════════════════════════════
+// METADATA VIEW
+// ══════════════════════════════════════
+function showMeta(outward){
+  const r=MAP[outward];
+  if(!r){
+    document.getElementById('vcard').innerHTML=`
+      <div class="verr">
+        <h2>⚠ Record Not Found</h2>
+        <p>जावक क्र. <strong>${outward}</strong> सापडला नाही.<br>PMRDA कार्यालयाशी संपर्क करा.</p>
+      </div>`;
+    return;
+  }
+  document.getElementById('vcard').innerHTML=`
+    <div class="vhead">
+      <div class="vlogo-row">
+        <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="40,4 76,40 40,76 4,40" fill="none" stroke="#003399" stroke-width="3"/>
+          <polygon points="40,14 66,40 40,66 14,40" fill="#003399"/>
+          <polygon points="40,22 58,40 40,58 22,40" fill="white"/>
+          <polygon points="40,30 50,40 40,50 30,40" fill="#cc0000"/>
+          <polygon points="40,26 46,38 34,38" fill="white"/>
+        </svg>
+        <div class="vorg">
+          PUNE METROPOLITAN REGION DEVELOPMENT AUTHORITY
+          <span class="vsub">PUNE METROPOLIS — rts.pmrda.gov.in</span>
+        </div>
+      </div>
+      <span class="vbadge">✓ अधिकृत परवाना / VERIFIED PERMIT</span>
+    </div>
+    <table class="vmeta">
+      <tr style="background:#e8edf5">
+        <td style="font-weight:800;color:#003399;font-size:12px;letter-spacing:.5px">विषय / TITLE</td>
+        <td style="font-weight:800;color:#003399;font-size:12px;letter-spacing:.5px">तपशील / VALUE</td>
+      </tr>
+      <tr><td>जावक क्रमांक</td><td><strong style="color:#003399;font-size:16px">${r.o}</strong></td></tr>
+      <tr><td>करण क्रमांक</td><td>${r.i}</td></tr>
+      <tr><td>जावक दिनांक</td><td>${r.d}</td></tr>
+      <tr><td>अर्जदाराचे नाव</td><td><strong>${r.a}</strong></td></tr>
+      <tr><td>विषय</td><td>${r.s}</td></tr>
+      <tr><td>करणाचा तपशील</td><td style="font-size:12px">${r.ref}</td></tr>
+      <tr><td>गावाचे नाव</td><td>${r.v}</td></tr>
+      <tr><td>तालुका</td><td>${r.t}</td></tr>
+      <tr><td>संपर्क क्रमांक</td><td>${r.c}</td></tr>
+      <tr><td>परवाना प्राधिकरण</td><td>PUNE METROPOLITAN REGION DEVELOPMENT AUTHORITY</td></tr>
+    </table>
+    <div class="vfoot">हे संगणकाद्वारे निर्मित दस्तावेज आहे. चौकशीसाठी PMRDA आकाशचिन्ह विभागाशी संपर्क साधा. | pmrda.gov.in</div>`;
+}
+
+// ══════════════════════════════════════
+// ADMIN — TABLE
+// ══════════════════════════════════════
+let filtered=[...REC],sel=new Set(),qrs={};
+
+function renderTable(){
+  document.getElementById('tbody').innerHTML=filtered.map(r=>`
+    <tr id="row-${r.o}" class="${sel.has(r.o)?'sel':''}">
+      <td><input type="checkbox" class="chk" ${sel.has(r.o)?'checked':''} onchange="toggleRow('${r.o}',this.checked)"></td>
+      <td>${r.sr}</td>
+      <td><span class="ono">${r.o}</span></td>
+      <td><span class="badge b-blue">${r.i}</span></td>
+      <td>${r.d}</td>
+      <td><div class="aname">${r.a}</div></td>
+      <td><span class="badge b-green">${r.s}</span></td>
+      <td>${r.v}</td><td>${r.t}</td><td>${r.c}</td>
+    </tr>`).join('');
+  updStats();
+}
+function filterTable(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  filtered=REC.filter(r=>r.a.toLowerCase().includes(q)||r.v.toLowerCase().includes(q)||r.o.toLowerCase().includes(q)||r.t.toLowerCase().includes(q));
+  renderTable();
+}
+function toggleRow(id,chk){if(chk)sel.add(id);else sel.delete(id);document.getElementById('row-'+id)?.classList.toggle('sel',chk);updStats();}
+function toggleAll(el){filtered.forEach(r=>{if(el.checked)sel.add(r.o);else sel.delete(r.o)});renderTable();}
+function selectAll(){REC.forEach(r=>sel.add(r.o));renderTable();}
+function deselectAll(){sel.clear();renderTable();}
+function updStats(){
+  document.getElementById('sSel').textContent=sel.size;
+  document.getElementById('sGen').textContent=Object.keys(qrs).length;
+  document.getElementById('btnGen').disabled=sel.size===0;
+  document.getElementById('btnZip').disabled=Object.keys(qrs).length===0;
+}
+
+// ══════════════════════════════════════
+// URL CHECK
+// ══════════════════════════════════════
+function checkUrl(){
+  const v=document.getElementById('baseUrl').value.trim();
+  const pill=document.getElementById('urlPill');
+  if(v.startsWith('https://')||v.startsWith('http://')){pill.textContent='✓ URL set';pill.className='url-pill ok';}
+  else if(!v){pill.textContent='⚠ Not set';pill.className='url-pill warn';}
+  else{pill.textContent='⚠ Needs https://';pill.className='url-pill warn';}
+}
+
+function getBase(){
+  const v=document.getElementById('baseUrl').value.trim().replace(/[?#].*/,'');
+  return v||window.location.href.replace(/[?#].*/,'');
+}
+
+// ══════════════════════════════════════
+// QR GENERATION — encodes ?r=OUTWARD
+// Short, clean URL = small easy-to-scan QR
+// ══════════════════════════════════════
+function makeUrl(outward){
+  return getBase()+'?r='+encodeURIComponent(outward);
+}
+
+async function generateSelected(){
+  const toGen=REC.filter(r=>sel.has(r.o));
+  if(!toGen.length)return;
+  document.getElementById('qrGrid').innerHTML='';
+  qrs={};
+  const pl=document.getElementById('pLabel'),pw=document.getElementById('pWrap'),pb=document.getElementById('pBar');
+  pl.style.display='block';pw.style.display='block';
+
+  for(let i=0;i<toGen.length;i++){
+    const r=toGen[i];
+    pl.textContent=`Generating ${i+1} of ${toGen.length} — ${r.a}`;
+    pb.style.width=((i/toGen.length)*100)+'%';
+    await new Promise(res=>{
+      const card=document.createElement('div');card.className='qr-card';
+      const qd=document.createElement('div');
+      const ne=document.createElement('div');ne.className='qn';ne.textContent=r.a;
+      const oe=document.createElement('div');oe.className='qo';oe.textContent='जावक क्र. '+r.o;
+      const ve=document.createElement('div');ve.className='qv';ve.textContent=r.v+' · '+r.t;
+      const db=document.createElement('button');db.className='dl1';db.textContent='⬇ Download';db.onclick=()=>dlOne(r);
+      card.append(qd,ne,oe,ve,db);
+      document.getElementById('qrGrid').appendChild(card);
+      new QRCode(qd,{text:makeUrl(r.o),width:150,height:150,colorDark:'#003399',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+      setTimeout(()=>{const cv=qd.querySelector('canvas');if(cv)qrs[r.o]={cv,r};res();},220);
+    });
+  }
+  pb.style.width='100%';
+  setTimeout(()=>{pl.style.display='none';pw.style.display='none';},600);
+  document.getElementById('qrSec').classList.add('show');
+  document.getElementById('qrCnt').textContent=toGen.length;
+  updStats();
+  document.getElementById('qrSec').scrollIntoView({behavior:'smooth'});
+}
+
+// ══════════════════════════════════════
+// LABELED CANVAS & DOWNLOAD
+// ══════════════════════════════════════
+function labeledCanvas(cv,r){
+  const P=18,B=68;
+  const out=document.createElement('canvas');
+  out.width=cv.width+P*2;out.height=cv.height+P+8+B;
+  const ctx=out.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+  ctx.fillStyle='#003399';ctx.fillRect(0,0,out.width,8);
+  ctx.drawImage(cv,P,16);
+  const cx=out.width/2,ny=cv.height+16+P+14;
+  ctx.fillStyle='#003399';ctx.font='bold 13px Arial';ctx.textAlign='center';
+  wrapTxt(ctx,r.a,cx,ny,out.width-16,16);
+  ctx.fillStyle='#555';ctx.font='11px Arial';
+  ctx.fillText('जावक क्र. '+r.o+' | '+r.v+', '+r.t,cx,ny+34);
+  ctx.fillStyle='#cc0000';ctx.fillRect(0,out.height-4,out.width,4);
+  return out;
+}
+function wrapTxt(ctx,txt,x,y,mw,lh){
+  if(ctx.measureText(txt).width<=mw){ctx.fillText(txt,x,y);return;}
+  const ws=txt.split(' ');let ln='',ly=y;
+  for(const w of ws){const t=ln+(ln?' ':'')+w;if(ctx.measureText(t).width>mw&&ln){ctx.fillText(ln,x,ly);ln=w;ly+=lh;}else ln=t;}
+  if(ln)ctx.fillText(ln,x,ly);
+}
+function dlOne(r){
+  const e=qrs[r.o];if(!e)return;
+  const out=labeledCanvas(e.cv,r);
+  const a=document.createElement('a');a.download='PMRDA_QR_'+r.o+'.png';a.href=out.toDataURL('image/png');a.click();
+}
+async function downloadZip(){
+  const keys=Object.keys(qrs);if(!keys.length)return;
+  const zip=new JSZip(),folder=zip.folder('PMRDA_Hoarding_QR_Codes');
+  for(const o of keys){const{cv,r}=qrs[o];const out=labeledCanvas(cv,r);folder.file('PMRDA_QR_'+o+'.png',out.toDataURL('image/png').split(',')[1],{base64:true});}
+  saveAs(await zip.generateAsync({type:'blob'}),'PMRDA_Hoarding_QRs_'+new Date().toISOString().split('T')[0]+'.zip');
+}
+</script>
+</body>
+</html>
